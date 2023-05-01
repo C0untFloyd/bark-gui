@@ -1,5 +1,6 @@
 from cProfile import label
 from distutils.command.check import check
+from doctest import Example
 import gradio as gr
 import os
 import re
@@ -181,7 +182,13 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
                 output_full=True,
             )
             i+=1
+
+        # Noticed this in the HF Demo - convert to 16bit int -32767/32767 - most used audio format  
+        audio_array = (audio_array * 32767).astype(np.int16)
+
+        # set seed back to random
         set_seed(-1)
+
         if len(texts) > 1:
             save_wav(audio_array, create_filename(OUTPUTFOLDER, "audioclip",".wav"))
 
@@ -236,6 +243,24 @@ def on_quick_gen_changed(checkbox):
         return gr.CheckboxGroup.update(visible=True)
     return gr.CheckboxGroup.update(visible=False)
 
+def delete_output_files(checkbox_state):
+    if checkbox_state:
+        outputs_folder = os.path.join(os.getcwd(), OUTPUTFOLDER)
+        if os.path.exists(outputs_folder):
+            purgedir(outputs_folder)
+    return False
+
+
+# https://stackoverflow.com/a/54494779
+def purgedir(parent):
+    for root, dirs, files in os.walk(parent):                                      
+        for item in files:
+            # Delete subordinate files                                                 
+            filespec = os.path.join(root, item)
+            os.unlink(filespec)
+        for item in dirs:
+            # Recursively perform this operation for subordinate directories   
+            purgedir(os.path.join(root, item))
 
 
 logger = logging.getLogger(__name__)
@@ -259,37 +284,64 @@ print(f'autolaunch={autolaunch}\n')
 
 
 # Collect all existing speakers/voices in dir
-speakers_list = ['None']
+speakers_list = []
 for file in os.listdir("./bark/assets/prompts"): 
     if file.endswith(".npz"):
         speakers_list.append(file[:-4])
+speakers_list.sort()
+speakers_list.insert(0, 'None')
 
 # Create Gradio Blocks
 
 with gr.Blocks(title="Bark Enhanced Gradio GUI", mode="Bark Enhanced") as barkgui:
     gr.Markdown("### [Bark Enhanced](https://github.com/C0untFloyd/bark-gui)")
     with gr.Tab("TTS"):
-        placeholder = """Enter text here. Special meanings: [laughter] [laughs] [sighs] [music] [gasps] [clears throat]
-— or ... for hesitations
-♪ for song lyrics"""
-        input_text = gr.Textbox(label="Input Text", lines=4, placeholder=placeholder)
-        speaker = gr.Dropdown(speakers_list, value=speakers_list[0], label="Voice")
-        text_temp = gr.Slider(
-            0.1,
-            1.0,
-            value=0.7,
-            label="Generation Temperature",
-            info="1.0 more diverse, 0.1 more conservative",
-        )
-        waveform_temp = gr.Slider(0.1, 1.0, value=0.7, label="Waveform temperature", info="1.0 more diverse, 0.1 more conservative")
+        with gr.Row():
+            with gr.Column():
+                placeholder = "Enter text here."
+                input_text = gr.Textbox(label="Input Text", lines=4, placeholder=placeholder)
+                examples = [
+                    "Special meanings: [laughter] [laughs] [sighs] [music] [gasps] [clears throat] MAN: WOMAN:",
+                   "♪ Never gonna make you cry, never gonna say goodbye, never gonna tell a lie and hurt you ♪",
+                   "And now — a picture of a larch [laughter]",
+                   """
+                        WOMAN: I would like an oatmilk latte please.
+                        MAN: Wow, that's expensive!
+                   """
+                   ]
+                examples = gr.Examples(examples=examples, inputs=input_text)
 
-        quick_gen_checkbox = gr.Checkbox(label="Quick Generation", value=True)
-        settings_checkboxes = ["Use semantic history", "Use coarse history", "Use fine history", "Use last generation as history"]
-        complete_settings = gr.CheckboxGroup(choices=settings_checkboxes, value=settings_checkboxes, label="Generation Settings", type="value", interactive=True, visible=False)
-        quick_gen_checkbox.change(fn=on_quick_gen_changed, inputs=quick_gen_checkbox, outputs=complete_settings)
+        with gr.Row():
+            with gr.Column():
+                speaker = gr.Dropdown(speakers_list, value=speakers_list[0], label="Voice")
+            with gr.Column():
+                text_temp = gr.Slider(
+                    0.1,
+                    1.0,
+                    value=0.7,
+                    label="Generation Temperature",
+                    info="1.0 more diverse, 0.1 more conservative"
+                )
+            with gr.Column():
+                waveform_temp = gr.Slider(0.1, 1.0, value=0.7, label="Waveform temperature", info="1.0 more diverse, 0.1 more conservative")
 
-        output_audio = gr.Audio(label="Generated Audio", type="filepath")
-        tts_create_button = gr.Button("Create")
+        with gr.Row():
+            with gr.Column():
+                quick_gen_checkbox = gr.Checkbox(label="Quick Generation", value=True)
+            with gr.Column():
+                settings_checkboxes = ["Use semantic history", "Use coarse history", "Use fine history", "Use last generation as history"]
+                complete_settings = gr.CheckboxGroup(choices=settings_checkboxes, value=settings_checkboxes, label="Detailed Generation Settings", type="value", interactive=True, visible=False)
+                quick_gen_checkbox.change(fn=on_quick_gen_changed, inputs=quick_gen_checkbox, outputs=complete_settings)
+
+        with gr.Row():
+            with gr.Column():
+                tts_create_button = gr.Button("Create")
+            with gr.Column():
+                hidden_checkbox = gr.Checkbox(visible=False)
+                button_delete_files = gr.Button("Clear output folder")
+        with gr.Row():
+            output_audio = gr.Audio(label="Generated Audio", type="filepath")
+
     with gr.Tab("Clone Voice"):
         input_audio_filename = gr.Audio(label="Input audio.wav", source="upload", type="filepath")
         transcription_text = gr.Textbox(label="Transcription Text", lines=1, placeholder="Enter Text of your Audio Sample here...")
@@ -300,6 +352,10 @@ with gr.Blocks(title="Bark Enhanced Gradio GUI", mode="Bark Enhanced") as barkgu
         dummy = gr.Text(label="Progress")
 
         tts_create_button.click(generate_text_to_speech, inputs=[input_text, speaker, text_temp, waveform_temp, quick_gen_checkbox, complete_settings],outputs=output_audio)
+        # Javascript hack to display modal confirmation dialog
+        js = "(x) => confirm('Are you sure? This will remove all files from output folder')"
+        button_delete_files.click(None, None, hidden_checkbox, _js=js)
+        hidden_checkbox.change(delete_output_files, [hidden_checkbox], [hidden_checkbox])
         clone_voice_button.click(clone_voice, inputs=[input_audio_filename, transcription_text, output_voice], outputs=dummy)
 
 barkgui.queue().launch(inbrowser=autolaunch)

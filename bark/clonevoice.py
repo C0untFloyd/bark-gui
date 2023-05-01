@@ -6,7 +6,7 @@ import os
 import gradio
 
 
-def clone_voice(audio_filepath, text, dest_filename, progress=gradio.Progress()):
+def clone_voice(audio_filepath, text, dest_filename, progress=gradio.Progress(track_tqdm=True)):
     if len(text) < 1:
         raise gradio.Error('No transcription text entered!')
 
@@ -31,7 +31,6 @@ def clone_voice(audio_filepath, text, dest_filename, progress=gradio.Progress())
     seconds = wav.shape[-1] / model.sample_rate
     # generate semantic tokens
     semantic_tokens = generate_text_semantic(text, max_gen_duration_s=seconds, top_k=50, top_p=.95, temp=0.7)
-    progress(0.75, desc="Saving voice")
 
     # move codes to cpu
     codes = codes.cpu().numpy()
@@ -39,5 +38,4 @@ def clone_voice(audio_filepath, text, dest_filename, progress=gradio.Progress())
     import numpy as np
     output_path = dest_filename + '.npz'
     np.savez(output_path, fine_prompt=codes, coarse_prompt=codes[:2, :], semantic_prompt=semantic_tokens)
-    progress(1.0, desc="Finished")
-    return [["foo"], ["bar"]]
+    return "Finished"

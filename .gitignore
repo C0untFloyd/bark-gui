@@ -17,3 +17,4 @@ __pycache__/
 build/*
 Outputs/*
 suno_bark.egg-info/*
+/bark/assets/prompts/MeMyselfAndI.npz
