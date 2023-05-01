@@ -8,7 +8,7 @@ import numpy as np
 import logging
 import torch
 
-from bark import SAMPLE_RATE, generate_audio
+from bark import SAMPLE_RATE, generate_audio, set_seed
 from bark.clonevoice import clone_voice
 from bark.generation import SAMPLE_RATE, preload_models, codec_decode, generate_coarse, generate_fine, generate_text_semantic
 from scipy.io.wavfile import write as write_wav
@@ -157,6 +157,7 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
 
     all_parts = []
     for i, text in tqdm(enumerate(texts), total=len(texts)):
+        set_seed(432)
         if quick_generation == True:
             print(f"\nGenerating Text ({i+1}/{len(texts)}) -> `{text}`")
             audio_array = generate_audio(text, selected_speaker, text_temp, waveform_temp)
@@ -180,7 +181,7 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
                 output_full=True,
             )
             i+=1
-
+        set_seed(-1)
         if len(texts) > 1:
             save_wav(audio_array, create_filename(OUTPUTFOLDER, "audioclip",".wav"))
 

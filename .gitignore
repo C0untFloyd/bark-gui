@@ -13,3 +13,7 @@ __pycache__/
 /docs/harald_24000.wav
 /docs/harald.wav
 /models
+.venv/*
+build/*
+Outputs/*
+suno_bark.egg-info/*
