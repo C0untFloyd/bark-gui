@@ -1,6 +1,6 @@
 # Bark GUI
 
-[Changelog](#-changelog) • [Example](#-example-input) • [Installation](#-installation) • [Usage](#-usage) • [FAQ](#-faq)
+[Changelog](#changelog) • [Example](#example-input) • [Installation](#installation) • [Usage](#usage) • [FAQ](#faq)
 
 
 A Gradio Web UI for an extended - easy to use - Bark Version, focused on Windows running locally.
@@ -30,19 +30,21 @@ We know NOW that in the early years of the twentieth century, this world was bei
 
 ### Installation
 
+For Windows you can now use the 1-click installer released. This will download and install everything
+in a handy miniconda environment.
+For other OS or if you'd rather like to do this by yourself then:
+
 - `git clone https://github.com/C0untFloyd/bark-gui`
 - `pip install .`
 - `pip install gradio`
-
-- (optional for audio playback) `pip install soundfile` 
-- (optional) install Torch with CUDA for much faster generation e.g. `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117 --force-reinstall` 
-
+- `pip install soundfile` 
+- (optional but necessary for fast generation) install Torch with CUDA `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117 --force-reinstall` 
 
 
 ### Usage
 
-- Linux `python webui.py (optional arguments)`
-- Windows Use the `StartBark.bat`
+- Windows Either run the `windows_start.bat` from the Installer or use the `StartBark.bat`
+- Linux `python webui.py (and optional commandline arguments)`
 
 #### Commandline Arguments:
 
@@ -96,6 +98,7 @@ As you can see every new line will be split as a potential new line for another 
 Afterwards you could change one of the speaker names (name="en_speaker_0) to create dialogues with fixed voices. If the number of words
 exceeds the max for Bark generation, new lines will be created reusing the voice from the sentence before that.
 
+Clicking on the `Generate` Button will automatically detect if this is SSML input or just plain text.
 
 
 
@@ -120,6 +123,13 @@ You probably have outdated Torch/CUDA Drivers. Try re-installing them:
 **Q:** I'm using Apple Silicone what can I do to speed up processing?
 
 Use commandline argument `-enablemps` to make Bark use it.
+
+
+**Q:** How much VRAM do I need to have this run on GPU?
+
+Running this on GPU is currently only possible on NVIDIA Cards with at least 2 Gb VRAM. Below 8 Gb you
+would probably need to use the smaller models and if you are still having memory problems, you would need
+to use the -offloadcpu command argument, which tries to offload as much memory to your standard memory.
 
 
 **Q:** Why are there voice changes in the resulting audio files?
@@ -148,6 +158,14 @@ I'm doing this basically for myself but I'm glad if you enjoy my experiments too
 
 
 ### Changelog
+
+**03.05.2023** First Release v0.4.0
+
+- BUGFIX: Joining prompt names in subfolders
+- Release with Windows Installer (lifted & modified from [Oobabooga](https://github.com/oobabooga/one-click-installers))
+- Installer .bat includes automatic updater
+- Trying to detect voice changes, adding short pause breaks inbetween
+
 
 **02.05.2023**
 

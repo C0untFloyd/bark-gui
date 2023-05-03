@@ -82,15 +82,22 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
     use_last_generation_as_history = "Use last generation as history" in complete_settings
     progress(0, desc="Generating")
 
-    silence = np.zeros(int(0.25 * SAMPLE_RATE), dtype=np.float32)  # quarter second of silence
+    silenceshort = np.zeros(int(0.25 * SAMPLE_RATE), dtype=np.float32)  # quarter second of silence
+    silencelong = np.zeros(int(0.50 * SAMPLE_RATE), dtype=np.float32)  # half a second of silence
 
     all_parts = []
     text = text.lstrip()
     if is_ssml(text):
         list_speak = create_clips_from_ssml(text)
+        prev_speaker = None
         for i, clip in tqdm(enumerate(list_speak), total=len(list_speak)):
+            # set seed for consistent generation
             set_seed(423)
             selected_speaker = clip[0]
+            # Add pause break between speakers
+            if i > 0 and selected_speaker != prev_speaker:
+                all_parts += [silencelong.copy()]
+            prev_speaker = selected_speaker
             text = clip[1]
             text = saxutils.unescape(text)
             if selected_speaker == "None":
@@ -100,10 +107,11 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
             audio_array = generate_audio(text, selected_speaker, text_temp, waveform_temp)
             if len(list_speak) > 1:
                 save_wav(audio_array, create_filename(OUTPUTFOLDER, "audioclip",".wav"))
-            all_parts += [audio_array, silence.copy()]
+            all_parts += [audio_array]
     else:
         texts = split_and_recombine_text(text)
         for i, text in tqdm(enumerate(texts), total=len(texts)):
+            # set seed for consistent generation
             set_seed(423)
             print(f"\nGenerating Text ({i+1}/{len(texts)}) -> {selected_speaker}:`{text}`")
             if quick_generation == True:
@@ -141,8 +149,15 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
                           full_generation['fine_prompt'])
                 # loading voice from custom folder needs to have extension
                 voice_name = voice_name + ".npz"
+            all_parts += [audio_array]
+            # Add short pause between sentences
+            if text[-1] in "!?.\n" and i > 1:
+                all_parts += [silenceshort.copy()]
+
             all_parts += [audio_array, silence.copy()]
+    # reset seed
     set_seed(-1)
+    
     # save & play audio
     result = create_filename(OUTPUTFOLDER, "final",".wav")
     save_wav(np.concatenate(all_parts), result)
@@ -236,9 +251,10 @@ for root, dirs, files in os.walk("./bark/assets/prompts"):
 	for file in files:
 		if(file.endswith(".npz")):
 			pathpart = root.replace("./bark/assets/prompts", "")
-			if len(pathpart) < 1:
-				pathpart = "/"
-			speakers_list.append(os.path.join(pathpart, file[:-4]))
+			name = os.path.join(pathpart, file[:-4])
+			if name.startswith("/") or name.startswith("\\"):
+				name = name[1:]
+			speakers_list.append(name)
 
 speakers_list = sorted(speakers_list, key=lambda x: x.lower())
 speakers_list.insert(0, 'None')
@@ -246,7 +262,7 @@ speakers_list.insert(0, 'None')
 # Create Gradio Blocks
 
 with gr.Blocks(title="Bark Enhanced Gradio GUI", mode="Bark Enhanced") as barkgui:
-    gr.Markdown("### [Bark Enhanced](https://github.com/C0untFloyd/bark-gui)")
+    gr.Markdown("### [Bark Enhanced v0.4.0](https://github.com/C0untFloyd/bark-gui)")
     with gr.Tab("TTS"):
         with gr.Row():
             with gr.Column():
@@ -283,13 +299,7 @@ with gr.Blocks(title="Bark Enhanced Gradio GUI", mode="Bark Enhanced") as barkgu
                 gr.Markdown("[Voice Prompt Library](https://suno-ai.notion.site/8b8e8749ed514b0cbf3f699013548683?v=bc67cff786b04b50b3ceb756fd05f68c)")
                 speaker = gr.Dropdown(speakers_list, value=speakers_list[0], label="Voice")
             with gr.Column():
-                text_temp = gr.Slider(
-                    0.1,
-                    1.0,
-                    value=0.7,
-                    label="Generation Temperature",
-                    info="1.0 more diverse, 0.1 more conservative"
-                )
+                text_temp = gr.Slider(0.1, 1.0, value=0.6, label="Generation Temperature", info="1.0 more diverse, 0.1 more conservative")
                 waveform_temp = gr.Slider(0.1, 1.0, value=0.7, label="Waveform temperature", info="1.0 more diverse, 0.1 more conservative")
 
         with gr.Row():
@@ -302,7 +312,7 @@ with gr.Blocks(title="Bark Enhanced Gradio GUI", mode="Bark Enhanced") as barkgu
 
         with gr.Row():
             with gr.Column():
-                tts_create_button = gr.Button("Create")
+                tts_create_button = gr.Button("Generate")
             with gr.Column():
                 hidden_checkbox = gr.Checkbox(visible=False)
                 button_delete_files = gr.Button("Clear output folder")

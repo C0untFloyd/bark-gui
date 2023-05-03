@@ -4,7 +4,7 @@ from xml.sax import saxutils
 #import nltk
 
 # Chunked generation originally from https://github.com/serp-ai/bark-with-voice-clone
-def split_and_recombine_text(text, desired_length=100, max_length=150):
+def split_and_recombine_text(text, desired_length=150, max_length=200):
     # return nltk.sent_tokenize(text)
 
     # from https://github.com/neonbjb/tortoise-tts
