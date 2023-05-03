@@ -54,7 +54,7 @@ def generate_with_settings(text_prompt, semantic_temp=0.7, semantic_top_k=50, se
         return full_generation, codec_decode(x_fine_gen)
     return codec_decode(x_fine_gen)
 
-def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, quick_generation, complete_settings, progress=gr.Progress(track_tqdm=True)):
+def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, quick_generation, complete_settings, random_seed_number, progress=gr.Progress(track_tqdm=True)):
     if text == None or len(text) < 1:
         raise gr.Error('No text entered!')
 
@@ -80,6 +80,8 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
     use_coarse_history_prompt = "Use coarse history" in complete_settings
     use_fine_history_prompt = "Use fine history" in complete_settings
     use_last_generation_as_history = "Use last generation as history" in complete_settings
+    random_seed = int(random_seed_number)
+
     progress(0, desc="Generating")
 
     silenceshort = np.zeros(int(0.25 * SAMPLE_RATE), dtype=np.float32)  # quarter second of silence
@@ -92,7 +94,7 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
         prev_speaker = None
         for i, clip in tqdm(enumerate(list_speak), total=len(list_speak)):
             # set seed for consistent generation
-            set_seed(423)
+            set_seed(random_seed)
             selected_speaker = clip[0]
             # Add pause break between speakers
             if i > 0 and selected_speaker != prev_speaker:
@@ -112,7 +114,7 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
         texts = split_and_recombine_text(text)
         for i, text in tqdm(enumerate(texts), total=len(texts)):
             # set seed for consistent generation
-            set_seed(423)
+            set_seed(random_seed)
             print(f"\nGenerating Text ({i+1}/{len(texts)}) -> {selected_speaker}:`{text}`")
             if quick_generation == True:
                 audio_array = generate_audio(text, selected_speaker, text_temp, waveform_temp)
@@ -154,7 +156,7 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
             if text[-1] in "!?.\n" and i > 1:
                 all_parts += [silenceshort.copy()]
 
-            all_parts += [audio_array, silence.copy()]
+            #all_parts += [audio_array, silencelong.copy()]
     # reset seed
     set_seed(-1)
     
@@ -306,9 +308,12 @@ with gr.Blocks(title="Bark Enhanced Gradio GUI", mode="Bark Enhanced") as barkgu
             with gr.Column():
                 quick_gen_checkbox = gr.Checkbox(label="Quick Generation", value=True)
             with gr.Column():
-                settings_checkboxes = ["Use semantic history", "Use coarse history", "Use fine history", "Use last generation as history"]
-                complete_settings = gr.CheckboxGroup(choices=settings_checkboxes, value=settings_checkboxes, label="Detailed Generation Settings", type="value", interactive=True, visible=False)
-                quick_gen_checkbox.change(fn=on_quick_gen_changed, inputs=quick_gen_checkbox, outputs=complete_settings)
+                with gr.Row():
+                    settings_checkboxes = ["Use semantic history", "Use coarse history", "Use fine history", "Use last generation as history"]
+                    complete_settings = gr.CheckboxGroup(choices=settings_checkboxes, value=settings_checkboxes, label="Detailed Generation Settings", type="value", interactive=True, visible=False)
+                    random_seed_number = gr.inputs.Number(label="Random Seed", default=-1)
+                    #random_seed_settings = gr.NumberGroup([random_seed_number], label="Random Seed Settings", interactive=True, visible=False)
+                    quick_gen_checkbox.change(fn=on_quick_gen_changed, inputs=quick_gen_checkbox, outputs=[complete_settings])
 
         with gr.Row():
             with gr.Column():
@@ -329,7 +334,7 @@ with gr.Blocks(title="Bark Enhanced Gradio GUI", mode="Bark Enhanced") as barkgu
         dummy = gr.Text(label="Progress")
 
         convert_to_ssml_button.click(convert_text_to_ssml, inputs=[input_text, speaker],outputs=input_text)
-        tts_create_button.click(generate_text_to_speech, inputs=[input_text, speaker, text_temp, waveform_temp, quick_gen_checkbox, complete_settings],outputs=output_audio)
+        tts_create_button.click(generate_text_to_speech, inputs=[input_text, speaker, text_temp, waveform_temp, quick_gen_checkbox, complete_settings, random_seed_number],outputs=output_audio)
         # Javascript hack to display modal confirmation dialog
         js = "(x) => confirm('Are you sure? This will remove all files from output folder')"
         button_delete_files.click(None, None, hidden_checkbox, _js=js)
