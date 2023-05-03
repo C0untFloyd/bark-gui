@@ -104,6 +104,7 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
     else:
         texts = split_and_recombine_text(text)
         for i, text in tqdm(enumerate(texts), total=len(texts)):
+            set_seed(423)
             print(f"\nGenerating Text ({i+1}/{len(texts)}) -> {selected_speaker}:`{text}`")
             if quick_generation == True:
                 audio_array = generate_audio(text, selected_speaker, text_temp, waveform_temp)
@@ -141,7 +142,7 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, qu
                 # loading voice from custom folder needs to have extension
                 voice_name = voice_name + ".npz"
             all_parts += [audio_array, silence.copy()]
-
+    set_seed(-1)
     # save & play audio
     result = create_filename(OUTPUTFOLDER, "final",".wav")
     save_wav(np.concatenate(all_parts), result)
