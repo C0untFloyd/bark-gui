@@ -34,6 +34,8 @@ def install_dependencies():
     print()
     gpuchoice = input("Input> ").lower()
 
+    run_cmd("conda install -y -k git")
+    
     # Clone webui to our computer
     run_cmd("git clone https://github.com/C0untFloyd/bark-gui.git")
     if gpuchoice == "y":
