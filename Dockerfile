@@ -1,27 +1,29 @@
-FROM debian:stable
+FROM python:3.10-bookworm
 
 # Install system packages
-RUN apt update && apt install -y git pip
+RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y \
+	ffmpeg 
+
 
 # Create non-root user
-RUN useradd -m -d /bark bark
+RUN useradd -m -d /bark bark 
+
+# Copy project files
+COPY ./ /bark/bark-gui
+
+# Correct permission for non-root user
+RUN chown bark:bark -R /bark/bark-gui
 
 # Run as new user
 USER bark
-WORKDIR /bark
-
-# Clone git repo
-RUN git clone https://github.com/C0untFloyd/bark-gui 
-
-# Switch to git directory
 WORKDIR /bark/bark-gui
 
 # Append pip bin path to PATH
 ENV PATH=$PATH:/bark/.local/bin
 
 # Install dependancies
-RUN pip install .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir . &&\
+	pip install --no-cache-dir -r requirements.txt
 
 # List on all addresses, since we are in a container.
 RUN sed -i "s/server_name: ''/server_name: 0.0.0.0/g" ./config.yaml
