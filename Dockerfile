@@ -20,8 +20,8 @@ WORKDIR /bark/bark-gui
 ENV PATH=$PATH:/bark/.local/bin
 
 # Install dependancies
-RUN pip install .
-RUN pip install -r requirements.txt
+RUN pip install . --break-system-packages
+RUN pip install -r requirements.txt --break-system-packages
 
 # List on all addresses, since we are in a container.
 RUN sed -i "s/server_name: ''/server_name: 0.0.0.0/g" ./config.yaml
