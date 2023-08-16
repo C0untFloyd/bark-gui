@@ -41,6 +41,7 @@ in a handy conda environment. This not only installs the application but also ru
 For other OS or if you'd rather like to do this by yourself then:
 
 - `git clone https://github.com/C0untFloyd/bark-gui`
+- `cd bark`
 - `pip install .`
 - (optional but best choice with NVIDIA GPUs) install Torch with CUDA `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --force-reinstall`
 - `pip install -r requirements.txt`
