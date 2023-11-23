@@ -363,7 +363,7 @@ while run_server:
 
         with gr.Tab("Swap Voice"):
             with gr.Row():
-                 swap_audio_filename = gr.Audio(label="Input audio.wav to swap voice", source="upload", type="filepath")
+                 swap_audio_filename = gr.Audio(label="Input audio.wav to swap voice", sources="upload", type="filepath")
             with gr.Row():
                  with gr.Column():
                      swap_tokenizer_lang = gr.Dropdown(tokenizer_language_list, label="Base Language Tokenizer", value=tokenizer_language_list[1])
@@ -378,7 +378,7 @@ while run_server:
 
         with gr.Tab("Clone Voice"):
             with gr.Row():
-                input_audio_filename = gr.Audio(label="Input audio.wav", source="upload", type="filepath")
+                input_audio_filename = gr.Audio(label="Input audio.wav", sources="upload", type="filepath")
             #transcription_text = gr.Textbox(label="Transcription Text", lines=1, placeholder="Enter Text of your Audio Sample here...")
             with gr.Row():
                 with gr.Column():
@@ -438,11 +438,17 @@ while run_server:
         quick_gen_checkbox.change(fn=on_quick_gen_changed, inputs=quick_gen_checkbox, outputs=complete_settings)
         convert_to_ssml_button.click(convert_text_to_ssml, inputs=[input_text, speaker],outputs=input_text)
         gen_click = tts_create_button.click(generate_text_to_speech, inputs=[input_text, speaker, text_temp, waveform_temp, eos_prob, quick_gen_checkbox, complete_settings, seedcomponent, batchcount],outputs=output_audio)
+        # Function to confirm file deletion Added by Donalda JS Hack caused issues with some users.
+        def confirm_delete(confirmation):
+            if confirmation:
+                delete_output_files()
+            else:
+                print("Deletion cancelled.")
+            return None
+
         button_stop_generation.click(fn=None, inputs=None, outputs=None, cancels=[gen_click])
-        # Javascript hack to display modal confirmation dialog
-        js = "(x) => confirm('Are you sure? This will remove all files from output folder')"
-        button_delete_files.click(None, None, hidden_checkbox, _js=js)
-        hidden_checkbox.change(delete_output_files, [hidden_checkbox], [hidden_checkbox])
+        confirm_deletion_button = gr.Button("Confirm Deletion")
+        button_delete_files.click(confirm_delete, inputs=confirm_deletion_button, outputs=None)
 
         swap_voice_button.click(swap_voice_from_audio, inputs=[swap_audio_filename, speaker_swap, swap_tokenizer_lang, swap_seed, swap_batchcount], outputs=output_swap)
         clone_voice_button.click(clone_voice, inputs=[input_audio_filename, tokenizerlang, output_voice], outputs=dummy)
@@ -464,7 +470,3 @@ while run_server:
             print("Keyboard interruption in main thread... closing server.")
             run_server = False
         barkgui.close()
-
-
-
-
