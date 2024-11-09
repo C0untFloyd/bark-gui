@@ -61,12 +61,12 @@ def generate_text_to_speech(text, selected_speaker, text_temp, waveform_temp, eo
     use_last_generation_as_history = "Use last generation as history" in complete_settings
     save_last_generation = "Save generation as Voice" in complete_settings
     for l in range(batchcount):
-        currentseed = seed
+        currentseed = int(seed)
         if seed != None and seed > 2**32 - 1:
             logger.warning(f"Seed {seed} > 2**32 - 1 (max), setting to random")
             currentseed = None
         if currentseed == None or currentseed <= 0:
-            currentseed = np.random.default_rng().integers(1, 2**32 - 1)
+            currentseed = int(np.random.default_rng().integers(1, 2**32 - 1))
         assert(0 < currentseed and currentseed < 2**32)
 
         progress(0, desc="Generating")
@@ -260,7 +260,7 @@ print("Preloading Models\n")
 preload_models()
 
 available_themes = ["Default", "gradio/glass", "gradio/monochrome", "gradio/seafoam", "gradio/soft", "gstaff/xkcd", "freddyaboulton/dracula_revamped", "ysharma/steampunk"]
-tokenizer_language_list = ["de","en", "es", "pl"]
+tokenizer_language_list = ["en", "de", "es", "pl", "it"]
 prepare_training_list = ["Step 1: Semantics from Text","Step 2: WAV from Semantics"]
 
 seed = -1

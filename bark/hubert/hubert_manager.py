@@ -42,6 +42,9 @@ class HuBERTManager:
             elif tokenizer_lang == 'pl':
                 repo = 'Hobis/bark-voice-cloning-polish-HuBERT-quantizer'
                 model = 'polish-HuBERT-quantizer_8_epoch.pth'
+            elif tokenizer_lang == 'it':
+                repo = 'gpwr/bark-it-tokenizer'
+                model = 'it_tokenizer.pth'
             else:
                 raise 'Unknown Tokenizer Language!'
             print(f'{local_file} not found. Downloading HuBERT custom tokenizer')

@@ -6,6 +6,7 @@ __pycache__/
 *.wav
 *.npy
 .vs/
+.idea/
 /models
 /bark_ui_enhanced.egg-info
 /build/lib/bark
