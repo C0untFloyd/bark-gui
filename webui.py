@@ -260,7 +260,7 @@ print("Preloading Models\n")
 preload_models()
 
 available_themes = ["Default", "gradio/glass", "gradio/monochrome", "gradio/seafoam", "gradio/soft", "gstaff/xkcd", "freddyaboulton/dracula_revamped", "ysharma/steampunk"]
-tokenizer_language_list = ["en","it", "de", "es", "pl"]
+tokenizer_language_list = ["en", "de", "es", "pl", "it"]
 prepare_training_list = ["Step 1: Semantics from Text","Step 2: WAV from Semantics"]
 
 seed = -1
